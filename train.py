@@ -7,12 +7,12 @@ from tensorflow import keras
 import tensorflow as tf
 
 # Local imports
-from backend.siamese.dataset import PairsGenerator
-from backend.siamese.dataset import MapFunction, AugmentMapFunction
-from backend.siamese.model import get_embedding_module
-from backend.siamese.model import get_siamese_network
-from backend.siamese.model import SiameseModel
-import backend.siamese.config as config
+from siamese.dataset import PairsGenerator
+from siamese.dataset import MapFunction, AugmentMapFunction
+from siamese.model import get_embedding_module
+from siamese.model import get_siamese_network
+from siamese.model import SiameseModel
+import siamese.config as config
 
 
 def prepare(ds, shuffle=False, augment=False):
