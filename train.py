@@ -66,13 +66,10 @@ valid_ds = prepare(valid_dataset)
 
 embedding_module = get_embedding_module(image_size=config.IMAGE_SIZE)
 siamese_net = get_siamese_network(
-    image_size=config.IMAGE_SIZE,
-    embedding_model=embedding_module,
+    image_size=config.IMAGE_SIZE, embedding_model=embedding_module
 )
 siamese_model = SiameseModel(
-    siamese_net=siamese_net,
-    margin=0.5,
-    lossTracker=keras.metrics.Mean(name="loss"),
+    siamese_net=siamese_net, margin=0.5, lossTracker=keras.metrics.Mean(name="loss")
 )
 siamese_model.compile(optimizer=keras.optimizers.Adam(config.LEARNING_RATE))
 

@@ -9,27 +9,24 @@ from pathlib import Path
 import tensorflow as tf
 
 
-# path to training and testing data
+# Path to training and validation data
 TRAIN_DATASET = Path(<<FILL ME>>)
 VALID_DATASET = Path(<<FILL ME>>)
 
 # model input image size
 IMAGE_SIZE = (680, 488)
 
-# batch size and the buffer size
 BATCH_SIZE = 4
-BUFFER_SIZE = BATCH_SIZE * 2
 
-# define autotune
 AUTO = tf.data.AUTOTUNE
 
-# define the training parameters
+# Training parameters
 LEARNING_RATE = 0.0001
 STEPS_PER_EPOCH = 50
 VALIDATION_STEPS = 10
 EPOCHS = 10
 
-# define the path to save the model
+# Path to save the model
 OUTPUT_PATH = Path("siamese_output")
 MODEL_PATH = OUTPUT_PATH / "siamese_network.keras"
 OUTPUT_IMAGE_PATH = OUTPUT_PATH / "output_image.png"
