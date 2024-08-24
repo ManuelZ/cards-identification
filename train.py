@@ -3,8 +3,8 @@ Modified from the Pyimagesearch 5-part series on Siamese networks: https://pyimg
 """
 
 # External imports
-from tensorflow import keras
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 # Local imports
 from siamese.dataset import PairsGenerator
@@ -13,6 +13,7 @@ from siamese.model import get_embedding_module
 from siamese.model import get_siamese_network
 from siamese.model import SiameseModel
 import siamese.config as config
+from siamese.create_index import create_index
 
 
 def prepare(ds, shuffle=False, augment=False):
@@ -38,6 +39,31 @@ def prepare(ds, shuffle=False, augment=False):
     return ds.prefetch(buffer_size=config.AUTO)
 
 
+def visualize_triplets(dataset, n_batches=1):
+    """ """
+    
+    for i, (anchors, positives, negatives) in enumerate(dataset):
+        
+        if i == n_batches:
+            break
+        
+        fig = plt.figure(figsize=(12, 8))
+        ax1, ax2, ax3 = fig.subplots(nrows=3, ncols=config.BATCH_SIZE)
+
+        for i in range(0, config.BATCH_SIZE):
+            anchor_im = anchors[i].numpy()
+            positive_im = positives[i].numpy()
+            negative_im = negatives[i].numpy()
+            
+            ax1[i].imshow(anchor_im)
+            ax2[i].imshow(positive_im)
+            ax3[i].imshow(negative_im)
+
+            plt.axis("off")
+
+        plt.tight_layout()
+        plt.show()
+
 train_generator = PairsGenerator(datasetPath=config.TRAIN_DATASET)
 valid_generator = PairsGenerator(datasetPath=config.VALID_DATASET)
 
@@ -57,36 +83,56 @@ valid_dataset = tf.data.Dataset.from_generator(
     ),
 )
 
-
 common_map_fun = MapFunction(image_size=config.IMAGE_SIZE)
 aug_map_fun = AugmentMapFunction()
 
 train_ds = prepare(train_dataset, shuffle=True, augment=True)
-valid_ds = prepare(valid_dataset)
+valid_ds = prepare(valid_dataset, augment=True)
 
-embedding_module = get_embedding_module(image_size=config.IMAGE_SIZE)
-siamese_net = get_siamese_network(
-    image_size=config.IMAGE_SIZE, embedding_model=embedding_module
-)
-siamese_model = SiameseModel(
-    siamese_net=siamese_net, margin=0.5, lossTracker=keras.metrics.Mean(name="loss")
-)
-siamese_model.compile(optimizer=keras.optimizers.Adam(config.LEARNING_RATE))
+visualize_triplets(train_ds, n_batches=1)
 
-print("Training the siamese model...")
-siamese_model.fit(
-    train_ds,
-    steps_per_epoch=config.STEPS_PER_EPOCH,
-    validation_data=valid_ds,
-    validation_steps=config.VALIDATION_STEPS,
-    epochs=config.EPOCHS,
-)
+if config.MODEL_PATH.exists():
+    print(f"Loading model {config.MODEL_PATH}")
+    siamese_model = tf.keras.models.load_model(filepath=config.MODEL_PATH)
+    print("Model loaded!")
+
+else:  # Create new model
+    embedding_module = get_embedding_module(image_size=config.IMAGE_SIZE)
+    siamese_net = get_siamese_network(
+        image_size=config.IMAGE_SIZE, embedding_model=embedding_module
+    )
+    siamese_model = SiameseModel(siamese_net=siamese_net, margin=0.5)
+    siamese_model.compile(optimizer=tf.keras.optimizers.SGD(config.LEARNING_RATE))
 
 
-print(f"Saving the siamese network to {config.MODEL_PATH}...")
-config.OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-keras.models.save_model(
-    model=siamese_model.siamese_net,
-    filepath=config.MODEL_PATH,
-    include_optimizer=False,
+# Create a callback that saves the model's weights
+cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=str(config.OUTPUT_PATH/"{epoch:02d}-{val_loss:.2f}.keras"),
+    save_freq="epoch",
+    verbose=1,
+    monitor="val_loss",
+    save_best_only=True
 )
+
+try:
+    print("Training the siamese model...")
+    siamese_model.fit(
+        train_ds,
+        steps_per_epoch=config.STEPS_PER_EPOCH,
+        validation_data=valid_ds,
+        validation_steps=config.VALIDATION_STEPS,
+        epochs=config.EPOCHS,
+        callbacks=[cp_callback]
+    )
+
+except KeyboardInterrupt as e:
+    print(F"Interrupted by user!")
+    print(f"Saving the siamese network to {config.MODEL_PATH}...")
+    config.OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+    tf.keras.models.save_model(
+        model=siamese_model,
+        filepath=config.MODEL_PATH,
+        include_optimizer=True,
+    )
+
+create_index()

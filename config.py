@@ -9,9 +9,12 @@ from pathlib import Path
 import tensorflow as tf
 
 
-# Path to training and validation data
-TRAIN_DATASET = Path(<<FILL ME>>)
-VALID_DATASET = Path(<<FILL ME>>)
+# Path to training and testing data
+DATASET = Path(r"<<FILL ME>>")
+TRAIN_DATASET = DATASET / "train"
+VALID_DATASET = DATASET / "val"
+
+QUERY_DATASET = Path(r"<<FILL ME>>")
 
 # model input image size
 IMAGE_SIZE = (680, 488)
@@ -28,5 +31,6 @@ EPOCHS = 10
 
 # Path to save the model
 OUTPUT_PATH = Path("siamese_output")
-MODEL_PATH = OUTPUT_PATH / "siamese_network.keras"
+MODEL_PATH = OUTPUT_PATH / "siamese_model.keras"
 OUTPUT_IMAGE_PATH = OUTPUT_PATH / "output_image.png"
+OUTPUT_INDEX_PATH = OUTPUT_PATH / "index.faiss"

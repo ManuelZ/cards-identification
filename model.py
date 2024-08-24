@@ -4,20 +4,19 @@ Modified from the Pyimagesearch 5-part series on Siamese networks: https://pyimg
 
 # External imports
 import tensorflow as tf
-from tensorflow.keras.applications import resnet
+from tensorflow.keras.applications import resnet, densenet
 from tensorflow.keras import layers
-from tensorflow import keras
 
 
 def get_embedding_module(image_size):
     """ """
 
-    inputs = keras.Input(image_size + (3,))
+    inputs = tf.keras.Input(image_size + (3,))
 
-    baseCnn = resnet.ResNet50(weights="imagenet", include_top=False)
+    baseCnn = densenet.DenseNet201(weights="imagenet", include_top=False)
     baseCnn.trainable = False
 
-    x = resnet.preprocess_input(inputs)
+    x = densenet.preprocess_input(inputs)
     x = baseCnn(x)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dense(units=1024, activation="relu")(x)
@@ -29,7 +28,7 @@ def get_embedding_module(image_size):
     x = layers.Dense(units=256, activation="relu")(x)
     x = layers.Dropout(0.2)(x)
     outputs = layers.Dense(units=128)(x)
-    embedding = keras.Model(inputs, outputs, name="embedding")
+    embedding = tf.keras.Model(inputs, outputs, name="embedding")
 
     return embedding
 
@@ -37,27 +36,27 @@ def get_embedding_module(image_size):
 def get_siamese_network(image_size, embedding_model):
     """ """
 
-    anchor_input = keras.Input(name="anchor", shape=image_size + (3,))
-    positive_input = keras.Input(name="positive", shape=image_size + (3,))
-    negative_input = keras.Input(name="negative", shape=image_size + (3,))
+    anchor_input = tf.keras.Input(name="anchor", shape=image_size + (3,))
+    positive_input = tf.keras.Input(name="positive", shape=image_size + (3,))
+    negative_input = tf.keras.Input(name="negative", shape=image_size + (3,))
 
     anchor_embedding = embedding_model(anchor_input)
     positive_embedding = embedding_model(positive_input)
     negative_embedding = embedding_model(negative_input)
 
-    siamese_network = keras.Model(
+    siamese_network = tf.keras.Model(
         inputs=[anchor_input, positive_input, negative_input],
         outputs=[anchor_embedding, positive_embedding, negative_embedding],
     )
     return siamese_network
 
 
-class SiameseModel(keras.Model):
-    def __init__(self, siamese_net, margin, lossTracker):
+class SiameseModel(tf.keras.Model):
+    def __init__(self, siamese_net, margin, **kwargs):
         super().__init__()
         self.siamese_net = siamese_net
         self.margin = margin
-        self.lossTracker = lossTracker
+        self.lossTracker = tf.keras.metrics.Mean(name="loss")
 
     def _compute_distance(self, inputs):
         """
@@ -75,8 +74,25 @@ class SiameseModel(keras.Model):
         anDistance = tf.reduce_sum(
             tf.square(anchor_embedding - negative_embedding), axis=-1
         )
-
         return (apDistance, anDistance)
+
+    def get_config(self):
+        """
+        See:
+        https://www.tensorflow.org/guide/keras/serialization_and_saving#custom_objects
+        https://www.tensorflow.org/guide/keras/serialization_and_saving#config_methods
+        """
+        base_config = super().get_config()
+        config = {
+            "siamese_net": self.siamese_net,
+            "margin": self.margin,
+        }
+        return {**base_config, **config}
+
+    @classmethod
+    def from_config(cls, config):
+        config["siamese_net"] = tf.keras.layers.deserialize(config["siamese_net"])
+        return cls(**config)
 
     def _compute_loss(self, apDistance, anDistance):
         loss = apDistance - anDistance

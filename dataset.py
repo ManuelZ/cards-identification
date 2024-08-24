@@ -16,13 +16,14 @@ class AugmentMapFunction:
     def __init__(self):
         self.trainAug = Sequential(
             [
-                layers.Rescaling(scale=1.0 / 255),
-                layers.RandomFlip("horizontal_and_vertical"),
+                layers.RandomBrightness(0.2, value_range=(0, 1)),
+                layers.RandomContrast(0.2),
+                layers.RandomFlip("vertical"),
                 layers.RandomZoom(
-                    height_factor=(-0.05, -0.15), width_factor=(-0.05, -0.15)
+                    height_factor=(-0.05, -0.15), width_factor=(-0.05, -0.15), fill_mode="constant"
                 ),
-                layers.RandomRotation(0.3),
-                layers.RandomTranslation(height_factor=0.2, width_factor=0.2),
+                layers.RandomRotation(0.01, fill_mode="constant"),
+                layers.RandomTranslation(height_factor=0.15, width_factor=0.15, fill_mode="constant"),
             ]
         )
 
@@ -38,7 +39,7 @@ class MapFunction:
     def decode_and_resize(self, imagePath):
         image = tf.io.read_file(imagePath)
         image = tf.image.decode_jpeg(image, channels=3)
-        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+        image = tf.image.convert_image_dtype(image, dtype=tf.float32)  # Does rescaling by 1/255!
         image = tf.image.resize(image, self.image_size)
         return image
 
