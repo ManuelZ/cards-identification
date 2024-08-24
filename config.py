@@ -9,28 +9,28 @@ from pathlib import Path
 import tensorflow as tf
 
 
-# Path to training and testing data
+# Data paths
 DATASET = Path(r"<<FILL ME>>")
 TRAIN_DATASET = DATASET / "train"
 VALID_DATASET = DATASET / "val"
 
 QUERY_DATASET = Path(r"<<FILL ME>>")
 
-# model input image size
-IMAGE_SIZE = (680, 488)
-
-BATCH_SIZE = 4
+# Model input image size
+IMAGE_SIZE = (<<FILL ME>>, <<FILL ME>>)
 
 AUTO = tf.data.AUTOTUNE
 
 # Training parameters
 LEARNING_RATE = 0.0001
-STEPS_PER_EPOCH = 50
-VALIDATION_STEPS = 10
-EPOCHS = 10
+INITIAL_EPOCH = 0
+INITIAL_VALUE_THRESH = None  # Set to None if first training
+EPOCHS = 100
+BATCH_SIZE = 4
 
-# Path to save the model
+# Output paths
 OUTPUT_PATH = Path("siamese_output")
 MODEL_PATH = OUTPUT_PATH / "siamese_model.keras"
-OUTPUT_IMAGE_PATH = OUTPUT_PATH / "output_image.png"
-OUTPUT_INDEX_PATH = OUTPUT_PATH / "index.faiss"
+MODEL_CKPT_PATH = OUTPUT_PATH / "epoch_{epoch:02d}-loss_{val_loss:.4f}.keras"
+INDEX_PATH = OUTPUT_PATH / "index.faiss"
+LOGS_PATH = OUTPUT_PATH / "logs"

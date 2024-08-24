@@ -34,7 +34,7 @@ def create_index():
         faiss.normalize_L2(embedding)
         index.add(embedding)
 
-    faiss.write_index(index, str(config.OUTPUT_INDEX_PATH))
+    faiss.write_index(index, str(config.INDEX_PATH))
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ def display_query_results(im_query, distances, indices, nrows=2, ncols=5):
 
 one_head_net = create_one_head_net()
 map_fun = MapFunction(config.IMAGE_SIZE)
-index = faiss.read_index(str(config.OUTPUT_INDEX_PATH))
+index = faiss.read_index(str(config.INDEX_PATH))
 print(f"There are {index.ntotal} observations in the index")
 
 images_paths = list(config.DATASET.rglob("*.jpg"))
