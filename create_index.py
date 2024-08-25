@@ -9,19 +9,22 @@ from siamese.dataset import MapFunction
 import siamese.config as config
 
 
-def create_one_head_net():
+def create_one_head_net(model_path):
     """
     For creating embeddings of a single image
     """
-    print(f"Loading the siamese network from {config.MODEL_PATH}...")
-    siamese_model = keras.models.load_model(filepath=config.MODEL_PATH)
+    print(f"Loading the siamese network from {model_path}...")
+    
+    siamese_model = keras.models.load_model(filepath=model_path)
     embedding_layer = siamese_model.siamese_net.get_layer("embedding")
     input_tensor = keras.Input(name="anchor", shape=config.IMAGE_SIZE + (3,))
     embedding = embedding_layer(input_tensor)
     return keras.Model(inputs=[input_tensor], outputs=[embedding])
 
-def create_index():
-    one_head_net = create_one_head_net()
+def create_index(model_path):
+    """ """
+    
+    one_head_net = create_one_head_net(model_path)
     num_features = 128
     index = faiss.IndexFlatIP(num_features)
     map_fun = MapFunction(config.IMAGE_SIZE)

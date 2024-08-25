@@ -12,7 +12,6 @@ from siamese.dataset import MapFunction, AugmentMapFunction
 from siamese.model import get_embedding_module
 from siamese.model import get_siamese_network
 from siamese.model import SiameseModel
-from siamese.create_index import create_index
 import siamese.config as config
 
 
@@ -65,13 +64,13 @@ def visualize_triplets(dataset, n_batches=1):
         plt.show()
 
 
-def save_model(model):
+def save_model(model, name):
     """ """
-    print(f"Saving the siamese network to {config.MODEL_PATH}...")
+    print(f"Saving the siamese network to {name}...")
     config.OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     tf.keras.models.save_model(
         model=model,
-        filepath=config.MODEL_PATH,
+        filepath=config.OUTPUT_PATH/name,
         include_optimizer=True,
     )
 
@@ -103,10 +102,24 @@ valid_ds = prepare(valid_dataset, augment=True)
 
 visualize_triplets(train_ds, n_batches=1)
 
+
+####################################################################################################
+# Model loading or creation
+####################################################################################################
+
+optimizer = tf.keras.optimizers.SGD(config.LEARNING_RATE)
 if config.MODEL_PATH.exists():
     print(f"Loading model {config.MODEL_PATH}")
+    
     siamese_model = tf.keras.models.load_model(filepath=config.MODEL_PATH)
     print("Model loaded!")
+    
+    siamese_model.siamese_net.get_layer('embedding').get_layer('densenet201').trainable = True
+    print(f"Setting feature extractor to trainable!")
+    
+    siamese_model.compile(optimizer=optimizer)
+    print(f"Setting learning rate to {config.LEARNING_RATE:.3E}")   
+
 
 else:  # Create new model
     embedding_module = get_embedding_module(image_size=config.IMAGE_SIZE)
@@ -114,21 +127,37 @@ else:  # Create new model
         image_size=config.IMAGE_SIZE, embedding_model=embedding_module
     )
     siamese_model = SiameseModel(siamese_net=siamese_net, margin=0.5)
-    siamese_model.compile(optimizer=tf.keras.optimizers.SGD(config.LEARNING_RATE))
+    siamese_model.compile(optimizer=optimizer)
 
 
-# Create a callback that saves the model's weights
-cp_callback = tf.keras.callbacks.ModelCheckpoint(
+####################################################################################################
+# Define train callbacks
+####################################################################################################
+
+ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
     filepath=str(config.MODEL_CKPT_PATH),
     save_freq="epoch",
-    verbose=1,
     monitor="val_loss",
     save_best_only=True,
-    initial_value_threshold=config.INITIAL_VALUE_THRESH
+    initial_value_threshold=config.INITIAL_VALUE_THRESH,
+    verbose=1,
 )
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=config.LOGS_PATH, histogram_freq=1)
+tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir=config.LOGS_PATH)
 
+reduce_lr_cb = tf.keras.callbacks.ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.5,
+    patience=7,
+    verbose=1,
+    epsilon=1e-4
+)
+
+callbacks = [ckpt_cb, tensorboard_cb, reduce_lr_cb]
+
+####################################################################################################
+# Train
+####################################################################################################
 
 try:
     print("Training the siamese model...")
@@ -138,14 +167,10 @@ try:
         validation_data=valid_ds,
         validation_steps=config.VALIDATION_STEPS,
         epochs=config.EPOCHS,
-        callbacks=[cp_callback, tensorboard_callback],
+        callbacks=callbacks,
         initial_epoch=config.INITIAL_EPOCH
     )
 
 except KeyboardInterrupt as e:
     print(F"Interrupted by user!")
-    save_model(siamese_model)
-
-
-save_model(siamese_model)
-create_index()
+    save_model(siamese_model, "siamese_interrupted.keras")

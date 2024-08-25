@@ -56,7 +56,7 @@ class SiameseModel(tf.keras.Model):
         super().__init__()
         self.siamese_net = siamese_net
         self.margin = margin
-        self.lossTracker = tf.keras.metrics.Mean(name="loss")
+        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
     def _compute_distance(self, inputs):
         """
@@ -101,7 +101,9 @@ class SiameseModel(tf.keras.Model):
 
     def call(self, inputs):
         """
-        inputs: (anchor, positive, negative)
+
+        Parameters
+            inputs: (anchor, positive, negative)
         """
         return self._compute_distance(inputs)
 
@@ -114,12 +116,15 @@ class SiameseModel(tf.keras.Model):
             (apDistance, anDistance) = self._compute_distance(inputs)
             loss = self._compute_loss(apDistance, anDistance)
 
-        gradients = tape.gradient(loss, self.siamese_net.trainable_variables)
-        self.optimizer.apply_gradients(
-            zip(gradients, self.siamese_net.trainable_variables)
-        )
-        self.lossTracker.update_state(loss)
-        return {"loss": self.lossTracker.result()}
+        # Compute gradients
+        trainable_vars = self.siamese_net.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        
+        self.loss_tracker.update_state(loss)
+        return {"loss": self.loss_tracker.result()}
 
     def test_step(self, inputs):
         """
@@ -128,9 +133,13 @@ class SiameseModel(tf.keras.Model):
 
         (apDistance, anDistance) = self._compute_distance(inputs)
         loss = self._compute_loss(apDistance, anDistance)
-        self.lossTracker.update_state(loss)
-        return {"loss": self.lossTracker.result()}
+        self.loss_tracker.update_state(loss)
+        return {"loss": self.loss_tracker.result()}
 
     @property
     def metrics(self):
-        return [self.lossTracker]
+        """
+        The model will call reset_states() on any object listed here at the beginning of
+        each fit() epoch or at the beginning of a call to evaluate().
+        """
+        return [self.loss_tracker]
