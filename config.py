@@ -27,7 +27,7 @@ EMBEDDING_SHAPE = 128  # Densenet121
 # Training parameters
 TRAIN_BACKBONE = False
 LEARNING_RATE = 1e-2
-INITIAL_EPOCH = 32
+INITIAL_EPOCH = 0
 INITIAL_VALUE_THRESH = None  # Set to None if first training
 EPOCHS = 100
 BATCH_SIZE = 4
