@@ -61,10 +61,11 @@ def get_siamese_network(image_size, embedding_model):
 
 
 class SiameseModel(tf.keras.Model):
-    def __init__(self, siamese_net, **kwargs):
+    def __init__(self, siamese_net, loss_fun, **kwargs):
         super().__init__()
         self.siamese_net = siamese_net
         self.loss_tracker = tf.keras.metrics.Mean(name="loss")
+        self.loss_fun = self.triplet_loss if loss_fun == "triplet" else self.circle_loss
 
     def triplet_loss(self, inputs, margin=0.5):
         """ """
@@ -135,7 +136,7 @@ class SiameseModel(tf.keras.Model):
             anchor_embedding, positive_embedding, negative_embedding = self.siamese_net(
                 inputs
             )
-            loss = self.circle_loss(
+            loss = self.loss_fun(
                 anchor_embedding, positive_embedding, negative_embedding
             )
 
@@ -154,7 +155,7 @@ class SiameseModel(tf.keras.Model):
         inputs: (anchor, positive, negative)
         """
 
-        loss = self.circle_loss(inputs)
+        loss = self.loss_fun(inputs)
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
