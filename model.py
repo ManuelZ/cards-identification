@@ -4,10 +4,17 @@ Modified from the Pyimagesearch 5-part series on Siamese networks: https://pyimg
 
 # External imports
 import tensorflow as tf
-from tensorflow.keras.applications import resnet, densenet
+from tensorflow.keras.applications import densenet
 from tensorflow.keras import layers
-from tensorflow.keras.models import Model
 import tensorflow.keras.backend as K
+import siamese.config as config
+
+
+def cosine_similarity(x, y):
+    """ """
+    x_norm = tf.nn.l2_normalize(x)
+    y_norm = tf.nn.l2_normalize(y)
+    return tf.reduce_sum(tf.multiply(x_norm, y_norm))
 
 
 def get_embedding_module(image_size):
@@ -60,23 +67,50 @@ class SiameseModel(tf.keras.Model):
         self.margin = margin
         self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
-    def _compute_distance(self, inputs):
-        """
-        inputs: (anchor, positive, negative)
-        """
+    def triplet_loss(self, inputs):
+        """ """
 
         (anchor_embedding, positive_embedding, negative_embedding) = self.siamese_net(
             inputs
         )
 
-        apDistance = tf.reduce_sum(
+        # Square of the Euclidean distance (square of the L2 norm)
+        ap_distance = tf.reduce_sum(
             tf.square(anchor_embedding - positive_embedding), axis=-1
         )
-
-        anDistance = tf.reduce_sum(
+        an_distance = tf.reduce_sum(
             tf.square(anchor_embedding - negative_embedding), axis=-1
         )
-        return (apDistance, anDistance)
+
+        loss = ap_distance - an_distance
+
+        loss = tf.maximum(loss + self.margin, 0.0)
+
+        return loss
+
+    def circle_loss(self, inputs, margin=0.25, scale=256):
+        """
+        Parameters
+            inputs: (anchor embedding, positive embedding, negative embedding)
+        """
+        q = inputs[0]
+        p = inputs[1]
+        n = inputs[2]
+
+        # From the paper: "Under the cosine similarity metric, for example, we expect sp->1 and sn->0."
+        sim_p = cosine_similarity(q, p)
+        sim_n = cosine_similarity(q, n)
+
+        alpha_p = K.relu(-sim_p + 1 + margin)
+        alpha_n = K.relu(sim_n + margin)
+
+        margin_p = 1 - margin
+        margin_n = margin
+
+        loss_p = K.sum(K.exp(-scale * alpha_p * (sim_p - margin_p)), axis=1)
+        loss_n = K.sum(K.exp(scale * alpha_n * (sim_n - margin_n)), axis=1)
+
+        return K.log(1 + loss_p * loss_n)
 
     def get_config(self):
         """
@@ -96,18 +130,13 @@ class SiameseModel(tf.keras.Model):
         config["siamese_net"] = tf.keras.layers.deserialize(config["siamese_net"])
         return cls(**config)
 
-    def _compute_loss(self, apDistance, anDistance):
-        loss = apDistance - anDistance
-        loss = tf.maximum(loss + self.margin, 0.0)
-        return loss
+    # def call(self, inputs):
+    #     """
 
-    def call(self, inputs):
-        """
-
-        Parameters
-            inputs: (anchor, positive, negative)
-        """
-        return self._compute_distance(inputs)
+    #     Parameters
+    #         inputs: (anchor, positive, negative)
+    #     """
+    #     return self._compute_distance(inputs)
 
     def train_step(self, inputs):
         """
@@ -115,16 +144,20 @@ class SiameseModel(tf.keras.Model):
         """
 
         with tf.GradientTape() as tape:
-            (apDistance, anDistance) = self._compute_distance(inputs)
-            loss = self._compute_loss(apDistance, anDistance)
+            anchor_embedding, positive_embedding, negative_embedding = self.siamese_net(
+                inputs
+            )
+            loss = self.circle_loss(
+                anchor_embedding, positive_embedding, negative_embedding
+            )
 
         # Compute gradients
         trainable_vars = self.siamese_net.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
-        
+
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-        
+
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
@@ -133,8 +166,7 @@ class SiameseModel(tf.keras.Model):
         inputs: (anchor, positive, negative)
         """
 
-        (apDistance, anDistance) = self._compute_distance(inputs)
-        loss = self._compute_loss(apDistance, anDistance)
+        loss = self.circle_loss(inputs)
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
@@ -145,53 +177,3 @@ class SiameseModel(tf.keras.Model):
         each fit() epoch or at the beginning of a call to evaluate().
         """
         return [self.loss_tracker]
-
-
-class CircleLoss(Model):
-    """Modified from: https://github.com/xiangli13/circle-loss/blob/master/circle_loss.py"""
-
-    def __init__(self, scale=256, margin=0.25, similarity="cos", **kwargs):
-        self.scale = scale
-        self.margin = margin
-        self.similarity = similarity
-        super().__init__(dynamic=True, **kwargs)
-
-    def call(self, inputs):
-        q = inputs[0]
-        p = inputs[1]
-        n = inputs[2]
-
-        if self.similarity == "dot":
-            sim_p = self.dot_similarity(q, p)
-            sim_n = self.dot_similarity(q, n)
-        elif self.similarity == "cos":
-            sim_p = self.cosine_similarity(q, p)
-            sim_n = self.cosine_similarity(q, n)
-        else:
-            raise ValueError("This similarity is not implemented.")
-
-        alpha_p = K.relu(-sim_p + 1 + self.margin)
-        alpha_n = K.relu(sim_n + self.margin)
-        margin_p = 1 - self.margin
-        margin_n = self.margin
-
-        loss_p = K.sum(K.exp(-self.scale * alpha_p * (sim_p - margin_p)), axis=1)
-        loss_n = K.sum(K.exp(self.scale * alpha_n * (sim_n - margin_n)), axis=1)
-        return K.log(1 + loss_p * loss_n)
-
-    def compute_output_shape(self, input_shape):
-        return (1,)
-
-    def dot_similarity(self, x, y):
-        x = K.reshape(x, (K.shape(x)[0], -1))
-        y = K.reshape(y, (K.shape(y)[0], -1))
-        return K.dot(x, K.transpose(y))
-
-    def cosine_similarity(self, x, y):
-        x = K.reshape(x, (K.shape(x)[0], -1))
-        y = K.reshape(y, (K.shape(y)[0], -1))
-        abs_x = K.sqrt(K.sum(K.square(x), axis=1, keepdims=True))
-        abs_y = K.sqrt(K.sum(K.square(y), axis=1, keepdims=True))
-        up = K.dot(x, K.transpose(y))
-        down = K.dot(abs_x, K.transpose(abs_y))
-        return up / down
