@@ -1,1 +1,5 @@
-faiss
+faiss-cpu
+albumentations
+matplotlib
+opencv-python
+tqdm
