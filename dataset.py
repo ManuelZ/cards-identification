@@ -32,6 +32,8 @@ transforms = A.Compose(
         ),
 
         A.SafeRotate(limit=10, border_mode=cv2.BORDER_CONSTANT, value=WHITE, p=0.1),
+
+        A.OpticalDistortion(border_mode=cv2.BORDER_CONSTANT, value=WHITE),
     ]
 )
 
