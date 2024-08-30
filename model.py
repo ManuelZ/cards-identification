@@ -126,14 +126,6 @@ class SiameseModel(tf.keras.Model):
         config["siamese_net"] = tf.keras.layers.deserialize(config["siamese_net"])
         return cls(**config)
 
-    # def call(self, inputs):
-    #     """
-
-    #     Parameters
-    #         inputs: (anchor, positive, negative)
-    #     """
-    #     return self._compute_distance(inputs)
-
     def train_step(self, inputs):
         """
         inputs: (anchor, positive, negative)
@@ -173,3 +165,11 @@ class SiameseModel(tf.keras.Model):
         each fit() epoch or at the beginning of a call to evaluate().
         """
         return [self.loss_tracker]
+
+    # def call(self, inputs):
+    #     """
+
+    #     Parameters
+    #         inputs: (anchor, positive, negative)
+    #     """
+    #     return self._compute_distance(inputs)
