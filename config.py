@@ -11,6 +11,7 @@ import tensorflow as tf
 
 # Data paths
 DATASET = Path(r"<<FILL ME>>")
+DATASET_SUBSET = Path(r"<<FILL ME>>")
 TRAIN_DATASET = DATASET / "train"
 VALID_DATASET = DATASET / "val"
 

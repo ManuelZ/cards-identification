@@ -29,14 +29,14 @@ def create_one_head_net(model_path):
     return keras.Model(inputs=[input_tensor], outputs=[embedding])
 
 
-def create_faiss_index(model_path):
+def create_faiss_index(model_path, data_path):
     """ """
 
     one_head_net = create_one_head_net(model_path)
     index = faiss.IndexFlatIP(config.EMBEDDING_SHAPE)
     map_fun = CommonMapFunction(config.IMAGE_SIZE)
 
-    for filepath in tqdm(config.DATASET.rglob("*.jpg")):
+    for filepath in tqdm(data_path.rglob("*.jpg")):
         image = map_fun.decode_and_resize(str(filepath))
         image = tf.expand_dims(image, 0, name=None)  # add batch dimension
         embedding = one_head_net(image)
@@ -47,13 +47,13 @@ def create_faiss_index(model_path):
     faiss.write_index(index, str(config.FAISS_INDEX_PATH))
 
 
-def create_manual_index(model_path):
+def create_manual_index(model_path, data_path):
     """ """
 
     one_head_net = create_one_head_net(model_path)
     map_fun = CommonMapFunction(config.IMAGE_SIZE)
 
-    images_paths = list(config.DATASET.rglob("*.jpg"))
+    images_paths = list(data_path.rglob("*.jpg"))
     num_images = len(images_paths)
     
     index = np.zeros((num_images, config.EMBEDDING_SHAPE), dtype=np.float64)
@@ -72,9 +72,10 @@ def create_manual_index(model_path):
 
 if __name__ == "__main__":
     model_path = config.LOAD_MODEL_PATH
+    data_path = config.DATASET_SUBSET
 
-    create_faiss_index(model_path)
-    # create_manual_index(model_path)
+    create_faiss_index(model_path, data_path)
+    # create_manual_index(model_path, data_path)
 
     # Read index
     with open(config.MANUAL_INDEX_PATH, "rb") as f:
