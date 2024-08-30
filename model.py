@@ -7,8 +7,10 @@ import tensorflow as tf
 from tensorflow.keras.applications import densenet
 from tensorflow.keras import layers
 import tensorflow.keras.backend as K
-import siamese.config as config
 
+# Used to investigate exploding calculations
+# Doesn't work in TF 2.17 (or maybe when the GPU is used, independently of the TF version. I don't know.)
+# tf.debugging.enable_check_numerics()
 
 def cosine_similarity(x, y):
     """ """
@@ -61,7 +63,7 @@ def get_siamese_network(image_size, embedding_model):
 
 
 class SiameseModel(tf.keras.Model):
-    def __init__(self, siamese_net, loss_fun, **kwargs):
+    def __init__(self, siamese_net, loss_fun=None, **kwargs):
         super().__init__()
         self.siamese_net = siamese_net
         self.loss_tracker = tf.keras.metrics.Mean(name="loss")
@@ -70,9 +72,7 @@ class SiameseModel(tf.keras.Model):
     def triplet_loss(self, inputs, margin=0.5):
         """ """
 
-        (anchor_embedding, positive_embedding, negative_embedding) = self.siamese_net(
-            inputs
-        )
+        (anchor_embedding, positive_embedding, negative_embedding) = inputs
 
         # Square of the Euclidean distance (square of the L2 norm)
         ap_distance = tf.reduce_sum(
@@ -107,10 +107,28 @@ class SiameseModel(tf.keras.Model):
         margin_p = 1 - margin
         margin_n = margin
 
-        loss_p = K.sum(K.exp(-scale * alpha_p * (sim_p - margin_p)), axis=1)
-        loss_n = K.sum(K.exp(scale * alpha_n * (sim_n - margin_n)), axis=1)
+        logit_p = -scale * alpha_p * (sim_p - margin_p)
+        logit_n = scale * alpha_n * (sim_n - margin_n)
 
-        return K.log(1 + loss_p * loss_n)
+        # Replace the straightforward implementation of the loss that directly uses exp because it can easily explode.
+        # 
+        # From: 
+        # https://github.com/layumi/Person_reID_baseline_pytorch/blob/7497812e72bb859b16152de0863af5a25198dec8/circle_loss.py#L39C9-L39C97
+        #
+        # Or should it be like this?
+        # https://github.com/tensorflow/similarity/blob/dc506d63d05d012d3496041c25c1c54981d39565/tensorflow_similarity/losses/circle_loss.py#L137
+        #
+        # I think the first form is fine:
+        #
+        # softplus(x)   = log(exp(x) + 1)
+        # softplus(a+b) = log(exp(a+b) + 1)
+        # softplus(a+b) = log(1 + exp(a)*exp(b))
+        # softplus(logsumexp(logit_n) + logsumexp(logit_p)) = log(1 + exp(logsumexp(logit_n))*exp(logsumexp(logit_p)))
+        # softplus(logsumexp(logit_n) + logsumexp(logit_p)) = log(1 + sumexp(logit_n)*sumexp(logit_p))
+        #                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ that looks just like in the paper
+        loss = tf.math.softplus(tf.math.reduce_logsumexp(logit_n) + tf.math.reduce_logsumexp(logit_p))
+
+        return loss
 
     def get_config(self):
         """
@@ -133,12 +151,8 @@ class SiameseModel(tf.keras.Model):
         """
 
         with tf.GradientTape() as tape:
-            anchor_embedding, positive_embedding, negative_embedding = self.siamese_net(
-                inputs
-            )
-            loss = self.loss_fun(
-                anchor_embedding, positive_embedding, negative_embedding
-            )
+            embeddings = self.siamese_net(inputs)
+            loss = self.loss_fun(embeddings)
 
         # Compute gradients
         trainable_vars = self.siamese_net.trainable_variables
@@ -154,8 +168,8 @@ class SiameseModel(tf.keras.Model):
         """
         inputs: (anchor, positive, negative)
         """
-
-        loss = self.loss_fun(inputs)
+        embeddings = self.siamese_net(inputs)
+        loss = self.loss_fun(embeddings)
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
