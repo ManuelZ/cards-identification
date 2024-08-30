@@ -40,6 +40,9 @@ VALIDATION_STEPS = int(NUM_VALIDATION_SAMPLES / BATCH_SIZE)
 # Inference parameters
 N_RESULTS = 9
 
+# Index parameters
+INDEX_TYPE = "dict"  # faiss, dict
+
 # Output paths
 OUTPUT_PATH = Path("siamese_output", "densenet121")
 LOAD_MODEL_PATH = OUTPUT_PATH / "not_existent.keras"  # Used for loading, if exists
@@ -47,3 +50,4 @@ MODEL_CKPT_PATH = OUTPUT_PATH / "epoch_{epoch:02d}-loss_{val_loss:.4f}.keras"
 FAISS_INDEX_PATH = OUTPUT_PATH / "index.faiss"
 MANUAL_INDEX_PATH = OUTPUT_PATH / "index.pickle"
 LOGS_PATH = OUTPUT_PATH / "logs"
+IMAGES_DF_PATH = OUTPUT_PATH / "images.csv"

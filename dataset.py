@@ -20,7 +20,6 @@ transforms = A.Compose(
         A.Perspective(
             fit_output=True, pad_mode=cv2.BORDER_CONSTANT, pad_val=WHITE, p=0.3
         ),
-        
         # Shift only
         A.ShiftScaleRotate(
             shift_limit=0.05,
@@ -30,9 +29,7 @@ transforms = A.Compose(
             value=WHITE,
             p=0.5,
         ),
-
         A.SafeRotate(limit=10, border_mode=cv2.BORDER_CONSTANT, value=WHITE, p=0.1),
-
         A.OpticalDistortion(border_mode=cv2.BORDER_CONSTANT, value=WHITE),
     ]
 )
