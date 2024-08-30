@@ -76,7 +76,3 @@ if __name__ == "__main__":
 
     create_faiss_index(model_path, data_path)
     # create_manual_index(model_path, data_path)
-
-    # Read index
-    with open(config.MANUAL_INDEX_PATH, "rb") as f:
-        index = pickle.load(f)
