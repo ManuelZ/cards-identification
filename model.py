@@ -61,13 +61,12 @@ def get_siamese_network(image_size, embedding_model):
 
 
 class SiameseModel(tf.keras.Model):
-    def __init__(self, siamese_net, margin, **kwargs):
+    def __init__(self, siamese_net, **kwargs):
         super().__init__()
         self.siamese_net = siamese_net
-        self.margin = margin
         self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
-    def triplet_loss(self, inputs):
+    def triplet_loss(self, inputs, margin=0.5):
         """ """
 
         (anchor_embedding, positive_embedding, negative_embedding) = self.siamese_net(
@@ -84,7 +83,7 @@ class SiameseModel(tf.keras.Model):
 
         loss = ap_distance - an_distance
 
-        loss = tf.maximum(loss + self.margin, 0.0)
+        loss = tf.maximum(loss + margin, 0.0)
 
         return loss
 
@@ -119,10 +118,7 @@ class SiameseModel(tf.keras.Model):
         https://www.tensorflow.org/guide/keras/serialization_and_saving#config_methods
         """
         base_config = super().get_config()
-        config = {
-            "siamese_net": self.siamese_net,
-            "margin": self.margin,
-        }
+        config = {"siamese_net": self.siamese_net}
         return {**base_config, **config}
 
     @classmethod

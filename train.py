@@ -122,7 +122,7 @@ else:  # Create new model
     siamese_net = get_siamese_network(
         image_size=config.IMAGE_SIZE, embedding_model=embedding_module
     )
-    siamese_model = SiameseModel(siamese_net=siamese_net, margin=0.5)
+    siamese_model = SiameseModel(siamese_net=siamese_net)
     siamese_model.compile(optimizer=optimizer)
 
 
