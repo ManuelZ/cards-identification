@@ -26,10 +26,10 @@ def get_latest_epoch_filename(folder_path: Path):
     latest_epoch = -1
     latest_filename = None
 
-    for filename in folder_path.iterdir():
+    for filename in folder_path.rglob("*.keras"):
         epoch, _ = extract_epoch_and_loss(filename.name)
         if epoch > latest_epoch:
-            latest_filename = filename
+            latest_filename = filename.name
 
     if latest_filename:
         return latest_filename

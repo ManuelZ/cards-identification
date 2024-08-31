@@ -21,7 +21,7 @@ def create_one_head_net(model_path):
     print(f"Loading the siamese network from {model_path}...")
 
     if not model_path.exists():
-        raise Exception("Model doesn't exist: '{model_path}'")
+        raise Exception(f"Model doesn't exist: '{model_path}'")
 
     siamese_model = keras.models.load_model(filepath=model_path)
     embedding_layer = siamese_model.siamese_net.get_layer("embedding")
