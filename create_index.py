@@ -90,7 +90,7 @@ def save_images_df(images_paths: list):
 
 if __name__ == "__main__":
     model_path = config.LOAD_MODEL_PATH
-    data_path = config.DATASET_SUBSET
+    data_path = config.DATA_SUBSET
 
     if config.INDEX_TYPE == "faiss":
         create_faiss_index(model_path, data_path)
