@@ -88,7 +88,7 @@ def read_index():
 one_head_net = create_one_head_net(config.LOAD_MODEL_PATH)
 map_fun = CommonMapFunction(config.IMAGE_SIZE)
 
-query_paths = list(config.QUERY_DATASET.rglob("*.jpg"))
+query_paths = list(config.QUERY_DATASET.rglob("**/*.[jp][pn]g"))
 print(f"There are {len(query_paths)} images for querying.")
 
 index = read_index()
