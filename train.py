@@ -135,7 +135,7 @@ ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
     save_freq="epoch",
     monitor="val_loss",
     save_best_only=True,
-    initial_value_threshold=config.INITIAL_VALUE_THRESH,
+    initial_value_threshold=config.INITIAL_LOSS,
     verbose=1,
 )
 
