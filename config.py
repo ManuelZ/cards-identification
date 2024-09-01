@@ -53,6 +53,7 @@ QUERY_DATASET = ROOT / "query"
 ########################################################################################################################
 
 OUTPUT_PATH = Path("siamese_output", "densenet121")
+OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
 # Filename of the checkpoint with the largest epoch number
 CKPT_FILENAME = get_latest_epoch_filename(OUTPUT_PATH)
@@ -96,7 +97,8 @@ EXTENSIONS = ("*.jpg", "*.jpeg", "*.png")
 
 TRAIN_BACKBONE = False
 LEARNING_RATE = 1e-4
-INITIAL_EPOCH, INITIAL_LOSS = extract_epoch_and_loss(CKPT_FILENAME)
+INITIAL_EPOCH, _ = extract_epoch_and_loss(CKPT_FILENAME)
+INITIAL_LOSS = None  # In case one wants to save models starting from certain loss
 EPOCHS = 100
 BATCH_SIZE = 4
 NUM_TRAIN_SAMPLES = len(list(TRAIN_DATASET.rglob("*.jpg")))
