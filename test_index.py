@@ -12,8 +12,6 @@ import pandas as pd
 
 # Local imports
 import siamese.config as config
-from siamese.dataset import CommonMapFunction
-from siamese.create_index import create_one_head_net
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -47,7 +45,6 @@ def display_query_results(im_query, distances, indices, nrows=2, ncols=5):
 def query_index(embedding, index, index_type, n_results):
     """ """
 
-    # Query the index with Faiss
     if index_type == "faiss":
         faiss.normalize_L2(embedding)
         distances, indices = index.search(embedding, n_results)
@@ -71,8 +68,8 @@ def query_index(embedding, index, index_type, n_results):
 
 
 def read_index():
+    """ """
 
-    # Read index
     if config.INDEX_TYPE == "dict":
         with open(config.MANUAL_INDEX_PATH, "rb") as f:
             index = pickle.load(f)
@@ -83,32 +80,3 @@ def read_index():
         print(f"There are {index.ntotal} observations in the index")
 
     return index
-
-
-one_head_net = create_one_head_net(config.LOAD_MODEL_PATH)
-map_fun = CommonMapFunction(config.IMAGE_SIZE)
-
-query_paths = list(config.QUERY_DATASET.rglob("**/*.[jp][pn]g"))
-print(f"There are {len(query_paths)} images for querying.")
-
-index = read_index()
-
-for query_path in query_paths:
-
-    # Load and preprocess image
-    image = map_fun.decode_and_resize(str(query_path))
-
-    # Add batch dimension
-    image = tf.expand_dims(image, 0, name=None)
-
-    # Extract embeddings
-    embedding = one_head_net(image).numpy()
-
-    indices, distances = query_index(
-        embedding, index, config.INDEX_TYPE, config.N_RESULTS
-    )
-
-    # Display query and results
-    im_query = cv2.imread(str(query_path))
-    im_query = cv2.cvtColor(im_query, cv2.COLOR_BGR2RGB)
-    display_query_results(im_query, distances, indices)

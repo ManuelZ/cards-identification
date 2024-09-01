@@ -12,6 +12,7 @@ import tensorflow.keras.backend as K
 # Doesn't work in TF 2.17 (or maybe when the GPU is used, independently of the TF version. I don't know.)
 # tf.debugging.enable_check_numerics()
 
+
 def cosine_similarity(x, y):
     """ """
     x_norm = tf.nn.l2_normalize(x)
@@ -19,16 +20,16 @@ def cosine_similarity(x, y):
     return tf.reduce_sum(tf.multiply(x_norm, y_norm))
 
 
-def get_embedding_module(image_size):
+def get_embedding_module(image_size, trainable=False):
     """ """
 
     inputs = tf.keras.Input(image_size + (3,))
 
-    baseCnn = densenet.DenseNet121(weights="imagenet", include_top=False)
-    baseCnn.trainable = False
+    base_cnn = densenet.DenseNet121(weights="imagenet", include_top=False)
+    base_cnn.trainable = trainable
 
     x = densenet.preprocess_input(inputs)
-    x = baseCnn(x)
+    x = base_cnn(x)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dense(units=1024, activation="relu")(x)
     x = layers.Dropout(0.2)(x)
@@ -111,8 +112,8 @@ class SiameseModel(tf.keras.Model):
         logit_n = scale * alpha_n * (sim_n - margin_n)
 
         # Replace the straightforward implementation of the loss that directly uses exp because it can easily explode.
-        # 
-        # From: 
+        #
+        # From:
         # https://github.com/layumi/Person_reID_baseline_pytorch/blob/7497812e72bb859b16152de0863af5a25198dec8/circle_loss.py#L39C9-L39C97
         #
         # Or should it be like this?
@@ -126,7 +127,9 @@ class SiameseModel(tf.keras.Model):
         # softplus(logsumexp(logit_n) + logsumexp(logit_p)) = log(1 + exp(logsumexp(logit_n))*exp(logsumexp(logit_p)))
         # softplus(logsumexp(logit_n) + logsumexp(logit_p)) = log(1 + sumexp(logit_n)*sumexp(logit_p))
         #                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ that looks just like in the paper
-        loss = tf.math.softplus(tf.math.reduce_logsumexp(logit_n) + tf.math.reduce_logsumexp(logit_p))
+        loss = tf.math.softplus(
+            tf.math.reduce_logsumexp(logit_n) + tf.math.reduce_logsumexp(logit_p)
+        )
 
         return loss
 

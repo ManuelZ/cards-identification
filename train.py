@@ -7,34 +7,12 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 # Local imports
-from siamese.dataset import PairsGenerator, create_dataset
+from siamese.dataset import PairsGenerator, create_dataset, prepare_dataset
 from siamese.dataset import CommonMapFunction, AugmentMapFunction
 from siamese.model import get_embedding_module
 from siamese.model import get_siamese_network
 from siamese.model import SiameseModel
 import siamese.config as config
-
-
-def prepare(ds, common_map, aug_map, shuffle=False, augment=False):
-    """
-    From:
-    https://www.tensorflow.org/tutorials/images/data_augmentation
-    """
-
-    # Resize and rescale all datasets
-    ds = ds.map(common_map, num_parallel_calls=config.AUTO)
-
-    if shuffle:
-        ds = ds.shuffle(1000)
-
-    if augment:
-        ds = ds.map(aug_map, num_parallel_calls=config.AUTO)
-
-    # Batch all datasets
-    ds = ds.batch(config.BATCH_SIZE)
-
-    # Use buffered prefetching on all datasets.
-    return ds.prefetch(buffer_size=config.AUTO)
 
 
 def visualize_triplets(dataset, n_batches=1):
@@ -78,8 +56,8 @@ def save_model(model, name):
 # Prepare datasets
 ####################################################################################################
 
-train_generator = PairsGenerator(datasetPath=config.TRAIN_DATASET)
-valid_generator = PairsGenerator(datasetPath=config.VALID_DATASET)
+train_generator = PairsGenerator(config.TRAIN_DATASET)
+valid_generator = PairsGenerator(config.VALID_DATASET)
 
 train_dataset = create_dataset(train_generator)
 valid_dataset = create_dataset(valid_generator)
@@ -87,10 +65,10 @@ valid_dataset = create_dataset(valid_generator)
 common_map_fun = CommonMapFunction(image_size=config.IMAGE_SIZE)
 aug_map_fun = AugmentMapFunction()
 
-train_ds = prepare(
+train_ds = prepare_dataset(
     train_dataset, common_map_fun, aug_map_fun, shuffle=True, augment=True
 )
-valid_ds = prepare(valid_dataset, common_map_fun, aug_map_fun, augment=True)
+valid_ds = prepare_dataset(valid_dataset, common_map_fun, aug_map_fun, augment=True)
 
 visualize_triplets(train_ds, n_batches=1)
 visualize_triplets(valid_ds, n_batches=1)
@@ -100,31 +78,33 @@ visualize_triplets(valid_ds, n_batches=1)
 # Model loading or creation
 ####################################################################################################
 
-optimizer = tf.keras.optimizers.SGD(config.LEARNING_RATE)
 if config.LOAD_MODEL_PATH.exists():
-    print(f"Loading model {config.LOAD_MODEL_PATH}")
-
+    print(f"Loading model {config.LOAD_MODEL_PATH}...")
     siamese_model = tf.keras.models.load_model(filepath=config.LOAD_MODEL_PATH)
     print("Model loaded!")
 
-    # Making densenet trainable causes XLA to take around 16 min to compile it.
+    # Making densenet trainable causes XLA to take around 16 min to compile it in my machine.
     # Make sure to disable it with `trainable=False` if you don't want to train the backbone anymore.
     siamese_model.siamese_net.get_layer("embedding").get_layer(
         "densenet121"
     ).trainable = config.TRAIN_BACKBONE
-    print(f"Setting feature extractor to trainable: {config.TRAIN_BACKBONE}")
 
-    siamese_model.compile(optimizer=optimizer)
-    print(f"Setting learning rate to {config.LEARNING_RATE:.3E}")
 
 else:  # Create new model
-    embedding_module = get_embedding_module(image_size=config.IMAGE_SIZE)
+    embedding_module = get_embedding_module(
+        image_size=config.IMAGE_SIZE, trainable=config.TRAIN_BACKBONE
+    )
+    print(f"Creating new feature extractor")
     siamese_net = get_siamese_network(
         image_size=config.IMAGE_SIZE, embedding_model=embedding_module
     )
-    siamese_model = SiameseModel(siamese_net=siamese_net)
-    siamese_model.compile(optimizer=optimizer)
+    siamese_model = SiameseModel(siamese_net)
 
+print(f"Is backbone trainable: {config.TRAIN_BACKBONE}")
+
+print(f"Setting learning rate to {config.LEARNING_RATE:.3E}")
+optimizer = tf.keras.optimizers.SGD(config.LEARNING_RATE)
+siamese_model.compile(optimizer=optimizer)
 
 ####################################################################################################
 # Define train callbacks
@@ -165,4 +145,3 @@ try:
 
 except KeyboardInterrupt as e:
     print(f"Interrupted by user!")
-    save_model(siamese_model, "siamese_interrupted.keras")

@@ -18,7 +18,7 @@ def extract_epoch_and_loss(filename: str | Path):
     match = re.search(r"epoch_(\d+)-loss_(\d+\.\d+)", filename)
     if match:
         return int(match[1]), float(match[2])
-    raise ValueError("Incorrect filename format")
+    raise ValueError(f"Incorrect filename format in file '{filename}'")
 
 
 def get_latest_epoch_filename(folder_path: Path):
@@ -86,6 +86,8 @@ N_RESULTS = 9
 
 # Index parameters
 INDEX_TYPE = "dict"  # faiss, dict
+
+EXTENSIONS = ("*.jpg", "*.jpeg", "*.png")
 
 
 ########################################################################################################################

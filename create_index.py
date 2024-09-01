@@ -37,14 +37,22 @@ def create_faiss_index(model_path, data_path):
     index = faiss.IndexFlatIP(config.EMBEDDING_SHAPE)
     map_fun = CommonMapFunction(config.IMAGE_SIZE)
 
-    for filepath in tqdm(data_path.rglob("*.jpg")):
-        image = map_fun.decode_and_resize(str(filepath))
+    images_paths = list(data_path.rglob("*.jpg"))
+    num_images = len(images_paths)
+    images_df = save_images_df(images_paths)
+    index_data = np.zeros(
+        (num_images, config.EMBEDDING_SHAPE), dtype=np.float32
+    )  # faiss can only work with float32
+
+    for i, row in tqdm(images_df.iterrows()):
+        image = map_fun.decode_and_resize(str(row.image_path))
         image = tf.expand_dims(image, 0, name=None)  # add batch dimension
         embedding = one_head_net(image)
         embedding = embedding.numpy()
         faiss.normalize_L2(embedding)
-        index.add(embedding)
+        index_data[i, :] = embedding
 
+    index.add(index_data)
     faiss.write_index(index, str(config.FAISS_INDEX_PATH))
     print(f"Faiss index created at '{config.FAISS_INDEX_PATH}'")
 
@@ -58,19 +66,19 @@ def create_manual_index(model_path, data_path):
     images_paths = list(data_path.rglob("*.jpg"))
     num_images = len(images_paths)
     images_df = save_images_df(images_paths)
+    index_data = np.zeros((num_images, config.EMBEDDING_SHAPE), dtype=np.float64)
 
-    index = np.zeros((num_images, config.EMBEDDING_SHAPE), dtype=np.float64)
     for i, row in tqdm(images_df.iterrows()):
         image = map_fun.decode_and_resize(str(row.image_path))
         image = tf.expand_dims(image, 0, name=None)  # add batch dimension
         embedding = one_head_net(image)
         embedding = embedding.numpy().astype(np.float64)
         embedding = embedding / np.linalg.norm(embedding)  # normalization
-        index[i, :] = embedding
+        index_data[i, :] = embedding
 
     # Save index
     with open(config.MANUAL_INDEX_PATH, "wb") as f:
-        pickle.dump(index, f)
+        pickle.dump(index_data, f)
 
 
 def save_images_df(images_paths: list):
