@@ -10,8 +10,15 @@ import re
 import tensorflow as tf
 
 
-def extract_epoch_and_loss(filename: str | Path):
-    """ """
+def extract_epoch_and_loss(filename: str | Path | None):
+    """
+    Return
+        initial epoch, initial loss threshold
+    """
+
+    if filename is None:
+        return 0, None
+
     if isinstance(filename, Path):
         filename = str(filename)
 
@@ -31,9 +38,13 @@ def get_latest_epoch_filename(folder_path: Path):
         if epoch > latest_epoch:
             latest_filename = filename.name
 
-    if latest_filename:
-        return latest_filename
-    raise ValueError("No valid files found in the specified folder")
+    return latest_filename
+
+
+def get_model_path():
+    if CKPT_FILENAME is not None:
+        return OUTPUT_PATH / CKPT_FILENAME
+    return None
 
 
 ########################################################################################################################
@@ -59,7 +70,7 @@ OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 CKPT_FILENAME = get_latest_epoch_filename(OUTPUT_PATH)
 
 # Used for loading, if exists
-LOAD_MODEL_PATH = OUTPUT_PATH / CKPT_FILENAME
+LOAD_MODEL_PATH = get_model_path()
 
 # New checkpoints will be saved to here
 MODEL_CKPT_PATH = OUTPUT_PATH / "epoch_{epoch:02d}-loss_{val_loss:.4f}.keras"
@@ -98,7 +109,7 @@ EXTENSIONS = ("*.jpg", "*.jpeg", "*.png")
 TRAIN_BACKBONE = False
 LEARNING_RATE = 1e-4
 INITIAL_EPOCH, _ = extract_epoch_and_loss(CKPT_FILENAME)
-INITIAL_LOSS = None  # In case one wants to save models starting from certain loss
+INITIAL_LOSS = None  # None to save models starting from any loss
 EPOCHS = 100
 BATCH_SIZE = 4
 NUM_TRAIN_SAMPLES = len(list(TRAIN_DATASET.rglob("*.jpg")))
