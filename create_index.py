@@ -18,7 +18,7 @@ def create_one_head_net(model_path):
     """
     For creating embeddings of a single image
     """
-    print(f"Loading the siamese network from {model_path}...")
+    print(f"Loading the model from '{model_path}'")
 
     if not model_path.exists():
         raise Exception(f"Model doesn't exist: '{model_path}'")
@@ -32,6 +32,8 @@ def create_one_head_net(model_path):
 
 def create_faiss_index(model_path, data_path):
     """ """
+
+    print("Creating Faiss index...")
 
     one_head_net = create_one_head_net(model_path)
     index = faiss.IndexFlatIP(config.EMBEDDING_SHAPE)
@@ -60,6 +62,8 @@ def create_faiss_index(model_path, data_path):
 def create_manual_index(model_path, data_path):
     """ """
 
+    print("Creating dict index...")
+
     one_head_net = create_one_head_net(model_path)
     map_fun = CommonMapFunction(config.IMAGE_SIZE)
 
@@ -79,6 +83,7 @@ def create_manual_index(model_path, data_path):
     # Save index
     with open(config.MANUAL_INDEX_PATH, "wb") as f:
         pickle.dump(index_data, f)
+    print(f"Dict index created at {config.MANUAL_INDEX_PATH}")
 
 
 def save_images_df(images_paths: list):
@@ -97,6 +102,10 @@ def save_images_df(images_paths: list):
 
 
 if __name__ == "__main__":
+    if config.LOAD_MODEL_PATH is None:
+        print("There is no model to load")
+        exit(-1)
+
     model_path = config.LOAD_MODEL_PATH
     data_path = config.DATA_SUBSET
 
