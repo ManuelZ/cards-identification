@@ -98,7 +98,7 @@ EMBEDDING_SHAPE = 128  # Densenet121
 N_RESULTS = 9
 
 # Index parameters
-INDEX_TYPE = "dict"  # faiss, dict
+INDEX_TYPE = "faiss"  # faiss, dict
 
 EXTENSIONS = ("*.jpg", "*.jpeg", "*.png")
 
