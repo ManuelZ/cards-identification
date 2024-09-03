@@ -38,9 +38,9 @@ def get_latest_epoch_filename(folder_path: Path):
     return latest_filename
 
 
-def get_model_path():
+def get_model_path(filename):
     if CKPT_FILENAME is not None:
-        return OUTPUT_PATH / CKPT_FILENAME
+        return OUTPUT_PATH / filename
     return None
 
 
@@ -65,15 +65,19 @@ OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
 # Filename of the checkpoint with the largest epoch number
 CKPT_FILENAME = get_latest_epoch_filename(OUTPUT_PATH)
+CKPT_FILENAME_PT = "checkpoint.pt"
 
 # Used for loading, if exists
-LOAD_MODEL_PATH = get_model_path()
+LOAD_MODEL_PATH = get_model_path(CKPT_FILENAME)
+LOAD_MODEL_PATH_PT = OUTPUT_PATH / CKPT_FILENAME_PT
 
 # New checkpoints will be saved to here
 MODEL_CKPT_PATH = OUTPUT_PATH / "epoch_{epoch:02d}-loss_{val_loss:.4f}.keras"
 
+# Index path
 FAISS_INDEX_PATH = OUTPUT_PATH / "index.faiss"
 MANUAL_INDEX_PATH = OUTPUT_PATH / "index.pickle"
+
 LOGS_PATH = OUTPUT_PATH / "logs"
 IMAGES_DF_PATH = OUTPUT_PATH / "images.csv"
 
@@ -81,6 +85,8 @@ IMAGES_DF_PATH = OUTPUT_PATH / "images.csv"
 ########################################################################################################################
 #  Other parameters
 ########################################################################################################################
+
+MOMENTUM = 0.937
 
 # Model input image size
 IMAGE_SIZE = (357, 256)

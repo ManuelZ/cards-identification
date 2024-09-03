@@ -40,16 +40,34 @@ valid_loader = torch.utils.data.DataLoader(
     num_workers=0,
 )
 
-lr = 1e-4
-momentum = 0.937
-num_epochs = 10
 
-model = create_model()
-loss_func = SelfSupervisedLoss(CircleLoss(m=0.25, gamma=256))
-optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True)
+def save_state(net, optimizer, epoch, loss):
+    """ """
+
+    print(f"Saving model during epoch {epoch} with a loss of {loss:.4f}")
+
+    torch.save(
+        {
+            "model_state_dict": net.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "epoch": epoch,
+            "loss": loss,
+        },
+        config.LOAD_MODEL_PATH_PT,
+    )
 
 
-def train(dataloader):
+def load_state(model, optimizer):
+    checkpoint = torch.load(config.LOAD_MODEL_PATH_PT, weights_only=True)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    epoch = checkpoint["epoch"]
+    loss = checkpoint["loss"]
+    print(f"Loaded state! Previous epoch was {epoch} with a loss of {loss:.4f}.")
+    return model, optimizer, epoch, loss
+
+
+def train(model, dataloader):
     epoch_loss = 0
     num_steps = len(dataloader.dataset) // config.BATCH_SIZE
 
@@ -71,9 +89,10 @@ def train(dataloader):
 
     avg_epoch_loss = epoch_loss / num_steps
     print(f"Epoch train loss: {avg_epoch_loss:.6f}")
+    return avg_epoch_loss
 
 
-def test(dataloader):
+def test(model, dataloader):
     epoch_loss = 0
     num_steps = len(dataloader.dataset) // config.BATCH_SIZE
 
@@ -91,13 +110,29 @@ def test(dataloader):
 
     avg_epoch_loss = epoch_loss / num_steps
     print(f"Epoch valid loss: {avg_epoch_loss:.6f} ")
+    return avg_epoch_loss
 
 
-for epoch in range(1, num_epochs + 1):
-    print(f"Starting epoch {epoch}")
-    train(train_loader)
-    test(valid_loader)
+if __name__ == "__main__":
 
-torch.save(model.state_dict(), "densenet121_model.pth")
+    starting_epoch = 1
+    model = create_model()
+    optimizer = torch.optim.SGD(
+        model.parameters(), lr=config.LEARNING_RATE, momentum=config.MOMENTUM
+    )
+    loss_func = SelfSupervisedLoss(CircleLoss(m=0.25, gamma=256))
 
-print("Finished")
+    if config.LOAD_MODEL_PATH_PT.exists():
+        model, optimizer, starting_epoch, loss = load_state(model, optimizer)
+        print(f"Restarting training. Previous validation loss: {loss:.4f}")
+
+    best_loss = float("inf")
+    for epoch in range(starting_epoch, config.EPOCHS + 1):
+        print(f"Starting epoch {epoch}")
+        train_loss = train(model, train_loader)
+        test_loss = test(model, valid_loader)
+        if test_loss < best_loss:
+            best_loss = test_loss
+            save_state(model, optimizer, epoch, test_loss)
+
+    print("Finished")
