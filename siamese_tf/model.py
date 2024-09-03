@@ -102,8 +102,11 @@ class SiameseModel(tf.keras.Model):
         sim_p = cosine_similarity(q, p)
         sim_n = cosine_similarity(q, n)
 
-        alpha_p = K.relu(-sim_p + 1 + margin)
-        alpha_n = K.relu(sim_n + margin)
+        Op = 1 + margin
+        On = -margin
+
+        alpha_p = K.relu(Op - tf.stop_gradient(sim_p))
+        alpha_n = K.relu(tf.stop_gradient(sim_n) - On)
 
         margin_p = 1 - margin
         margin_n = margin
@@ -121,8 +124,8 @@ class SiameseModel(tf.keras.Model):
         #
         # I think the first form is fine:
         #
-        # softplus(x)   = log(exp(x) + 1)
-        # softplus(a+b) = log(exp(a+b) + 1)
+        # softplus(x)   = log(1 + exp(x))
+        # softplus(a+b) = log(1 + exp(a+b))
         # softplus(a+b) = log(1 + exp(a)*exp(b))
         # softplus(logsumexp(logit_n) + logsumexp(logit_p)) = log(1 + exp(logsumexp(logit_n))*exp(logsumexp(logit_p)))
         # softplus(logsumexp(logit_n) + logsumexp(logit_p)) = log(1 + sumexp(logit_n)*sumexp(logit_p))

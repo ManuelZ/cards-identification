@@ -10,13 +10,13 @@ from pathlib import Path
 import tensorflow as tf
 from tensorflow.keras import Sequential
 import tensorflow.keras.layers as layers
-import albumentations as A
+
 import cv2
 
 # Local imports
 import siamese.config as config
-
-WHITE = (1, 1, 1)
+from siamese.augmentations import al_augmentations
+from siamese.utils import get_image_paths
 
 
 def random_vertical_flip(image, p=0.5):
@@ -42,38 +42,15 @@ tf_augmentations = Sequential(
     ]
 )
 
-al_augmentations = A.Compose(
-    [
-        A.Blur(blur_limit=5),
-        A.CoarseDropout(p=0.1),
-        # Zoom
-        A.ShiftScaleRotate(
-            shift_limit=0,
-            rotate_limit=0,
-            scale_limit=(-0.2, 0),  # Zoom out only
-            border_mode=cv2.BORDER_CONSTANT,
-            value=WHITE,
-            p=1.0,
-        ),
-        A.Perspective(
-            fit_output=True, pad_mode=cv2.BORDER_CONSTANT, pad_val=WHITE, p=0.3
-        ),
-        # Shift only
-        A.ShiftScaleRotate(
-            shift_limit=0.05,
-            rotate_limit=0,
-            scale_limit=0,
-            border_mode=cv2.BORDER_CONSTANT,
-            value=WHITE,
-            p=0.5,
-        ),
-        A.SafeRotate(limit=10, border_mode=cv2.BORDER_CONSTANT, value=WHITE, p=0.1),
-        A.OpticalDistortion(border_mode=cv2.BORDER_CONSTANT, value=WHITE),
-    ]
-)
-
 
 class AugmentMapFunction:
+    def __init__(self):
+        pass
+
+    def apply_albumentations(self, image):
+        return tf.numpy_function(
+            func=apply_albumentations, inp=[image], Tout=tf.float32
+        )
 
     def __call__(self, anchor, positive, negative):
         positive = tf_augmentations(positive)
@@ -102,17 +79,6 @@ class CommonMapFunction:
         positive = tf.identity(anchor)
         negative = self.decode_and_resize(negative)
         return (anchor, positive, negative)
-
-
-def get_image_paths(folder: Path, return_str=False) -> list[Path | str]:
-    """Get all the image paths from a folder"""
-    paths = []
-    for ext in config.EXTENSIONS:
-        folder_paths = list(folder.rglob(ext))
-        if return_str:
-            folder_paths = [str(f) for f in folder_paths]
-        paths.extend(folder_paths)
-    return paths
 
 
 class PairsGenerator:
@@ -154,14 +120,14 @@ def create_dataset(generator):
 def prepare_dataset(ds, common_map, aug_map, shuffle=False, augment=False):
     """ """
 
-    ds = ds.map(common_map, num_parallel_calls=config.AUTO)
+    ds = ds.map(common_map, num_parallel_calls=tf.data.AUTOTUNE)
 
     if shuffle:
         ds = ds.shuffle(1000)
 
     if augment:
-        ds = ds.map(aug_map, num_parallel_calls=config.AUTO)
+        ds = ds.map(aug_map, num_parallel_calls=tf.data.AUTOTUNE)
 
     ds = ds.batch(config.BATCH_SIZE)
 
-    return ds.prefetch(buffer_size=config.AUTO)
+    return ds.prefetch(buffer_size=tf.data.AUTOTUNE)

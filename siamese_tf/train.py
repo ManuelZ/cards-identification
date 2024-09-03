@@ -7,11 +7,11 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 # Local imports
-from siamese.dataset import PairsGenerator, create_dataset, prepare_dataset
-from siamese.dataset import CommonMapFunction, AugmentMapFunction
-from siamese.model import get_embedding_module
-from siamese.model import get_siamese_network
-from siamese.model import SiameseModel
+from siamese.siamese_tf.dataset import PairsGenerator, create_dataset, prepare_dataset
+from siamese.siamese_tf.dataset import CommonMapFunction, AugmentMapFunction
+from siamese.siamese_tf.model import get_embedding_module
+from siamese.siamese_tf.model import get_siamese_network
+from siamese.siamese_tf.model import SiameseModel
 import siamese.config as config
 
 
@@ -78,7 +78,7 @@ visualize_triplets(valid_ds, n_batches=1)
 # Model loading or creation
 ####################################################################################################
 
-if config.LOAD_MODEL_PATH.exists():
+if config.LOAD_MODEL_PATH is not None and config.LOAD_MODEL_PATH.exists():
     print(f"Loading model {config.LOAD_MODEL_PATH}...")
     siamese_model = tf.keras.models.load_model(filepath=config.LOAD_MODEL_PATH)
     print("Model loaded!")
