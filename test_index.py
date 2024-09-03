@@ -3,7 +3,6 @@ import os
 import pickle
 
 # External imports
-import tensorflow as tf
 import faiss
 import cv2
 import matplotlib.pyplot as plt
