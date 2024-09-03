@@ -31,13 +31,13 @@ valid_dataset = SiameseDataset(
 train_loader = torch.utils.data.DataLoader(
     train_dataset,
     batch_size=config.BATCH_SIZE,
-    num_workers=0,
+    num_workers=config.NUM_WORKERS,
 )
 
 valid_loader = torch.utils.data.DataLoader(
     valid_dataset,
     batch_size=config.BATCH_SIZE,
-    num_workers=0,
+    num_workers=config.NUM_WORKERS,
 )
 
 
