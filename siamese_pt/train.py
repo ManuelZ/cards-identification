@@ -1,5 +1,6 @@
 # External imports
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from pytorch_metric_learning.losses import (
     SelfSupervisedLoss,
     TripletMarginLoss,
@@ -88,49 +89,61 @@ def train(model, dataloader):
         pbar.set_description(f"loss={loss.item():.5f}")
 
     avg_epoch_loss = epoch_loss / num_steps
-    print(f"Epoch train loss: {avg_epoch_loss:.6f}")
+
     return avg_epoch_loss
 
 
 def test(model, dataloader):
     epoch_loss = 0
     num_steps = len(dataloader.dataset) // config.BATCH_SIZE
+    pbar = tqdm(dataloader)
 
     model.eval()
-    pbar = tqdm(dataloader)
-    for anchor, positive in pbar:
-        anchor = anchor.to(DEVICE, dtype=torch.float32)
-        positive = positive.to(DEVICE, dtype=torch.float32)
-        anchor_embeddings = model(anchor)
-        positive_embeddings = model(positive)
-        loss = loss_func(anchor_embeddings, positive_embeddings)
-        epoch_loss += loss.item()
+    with torch.no_grad():
+        for anchor, positive in pbar:
+            anchor = anchor.to(DEVICE, dtype=torch.float32)
+            positive = positive.to(DEVICE, dtype=torch.float32)
+            anchor_embeddings = model(anchor)
+            positive_embeddings = model(positive)
+            loss = loss_func(anchor_embeddings, positive_embeddings)
+            epoch_loss += loss.item()
 
-        pbar.set_description(f"loss={loss.item():.5f}")
+            pbar.set_description(f"loss={loss.item():.5f}")
 
-    avg_epoch_loss = epoch_loss / num_steps
-    print(f"Epoch valid loss: {avg_epoch_loss:.6f} ")
+        avg_epoch_loss = epoch_loss / num_steps
+
     return avg_epoch_loss
 
 
 if __name__ == "__main__":
 
     starting_epoch = 1
+    best_loss = float("inf")
+
     model = create_model()
     optimizer = torch.optim.SGD(
         model.parameters(), lr=config.LEARNING_RATE, momentum=config.MOMENTUM
     )
     loss_func = SelfSupervisedLoss(CircleLoss(m=0.25, gamma=256))
 
-    if config.LOAD_MODEL_PATH_PT.exists():
-        model, optimizer, starting_epoch, loss = load_state(model, optimizer)
-        print(f"Restarting training. Previous validation loss: {loss:.4f}")
+    writer = SummaryWriter()
 
-    best_loss = float("inf")
+    if config.LOAD_MODEL_PATH_PT.exists():
+        model, optimizer, starting_epoch, best_loss = load_state(model, optimizer)
+        print(f"Restarting training. Previous validation loss: {best_loss:.4f}")
+
     for epoch in range(starting_epoch, config.EPOCHS + 1):
         print(f"Starting epoch {epoch}")
         train_loss = train(model, train_loader)
         test_loss = test(model, valid_loader)
+
+        print(
+            f"Epoch train loss: {train_loss:.6f} | Epoch valid loss: {test_loss:.6f} "
+        )
+
+        writer.add_scalar("Loss/train", train_loss, epoch)
+        writer.add_scalar("Loss/val", test_loss, epoch)
+
         if test_loss < best_loss:
             best_loss = test_loss
             save_state(model, optimizer, epoch, test_loss)
