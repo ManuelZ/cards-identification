@@ -59,93 +59,142 @@ def save_state(net, optimizer, epoch, loss):
 
 
 def load_state(model, optimizer):
+    """ """
     checkpoint = torch.load(config.LOAD_MODEL_PATH_PT, weights_only=True)
     model.load_state_dict(checkpoint["model_state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
-    print(f"Loaded state! Previous epoch was {epoch} with a loss of {loss:.4f}.")
+    print(
+        f"Previous state has been loaded! Previous epoch was {epoch} with a loss of {loss:.4f}."
+    )
     return model, optimizer, epoch, loss
 
 
-def train(model, dataloader):
-    epoch_loss = 0
-    num_steps = len(dataloader.dataset) // config.BATCH_SIZE
+class Trainer:
+    def __init__(
+        self, model, optimizer, loss_fun, best_loss, train_dataloader, valid_dataloader
+    ):
+        """
+        best_loss: The validation loss achieved by the loaded moadel.
+        """
+        self.model = model
+        self.optimizer = optimizer
+        self.loss_fun = loss_fun
+        self.best_loss = best_loss
+        self.train_dataloader = train_dataloader
+        self.valid_dataloader = valid_dataloader
+        self.loss_meter = AverageMeter("Loss", ":.4e")
+        self.writer = SummaryWriter()
 
-    model.train()
-    pbar = tqdm(dataloader)
-    for anchor, positive in pbar:
-        anchor = anchor.to(DEVICE, dtype=torch.float32)
-        positive = positive.to(DEVICE, dtype=torch.float32)
-        anchor_embeddings = model(anchor)
-        positive_embeddings = model(positive)
-        loss = loss_func(anchor_embeddings, positive_embeddings)
-        epoch_loss += loss.item()
+    def evaluate(self, tensor):
+        tensor = tensor.to(DEVICE, dtype=torch.float32)
+        embeddings = self.model(tensor)
+        return embeddings
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    def train(self):
+        """ """
 
-        pbar.set_description(f"loss={loss.item():.5f}")
+        self.loss_meter.reset()
+        pbar = tqdm(self.train_dataloader)
 
-    avg_epoch_loss = epoch_loss / num_steps
-
-    return avg_epoch_loss
-
-
-def test(model, dataloader):
-    epoch_loss = 0
-    num_steps = len(dataloader.dataset) // config.BATCH_SIZE
-    pbar = tqdm(dataloader)
-
-    model.eval()
-    with torch.no_grad():
+        self.model.train()
         for anchor, positive in pbar:
-            anchor = anchor.to(DEVICE, dtype=torch.float32)
-            positive = positive.to(DEVICE, dtype=torch.float32)
-            anchor_embeddings = model(anchor)
-            positive_embeddings = model(positive)
-            loss = loss_func(anchor_embeddings, positive_embeddings)
-            epoch_loss += loss.item()
+            anchor_embeddings = self.evaluate(anchor)
+            positive_embeddings = self.evaluate(positive)
+            loss = self.loss_fun(anchor_embeddings, positive_embeddings)
+            self.loss_meter.update(loss.item(), anchor.size(0))
 
-            pbar.set_description(f"loss={loss.item():.5f}")
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
 
-        avg_epoch_loss = epoch_loss / num_steps
+            pbar.set_description(f"Batch loss={loss.item():.5f}")
 
-    return avg_epoch_loss
+        return self.loss_meter.avg
+
+    def test(self):
+        """ """
+
+        self.loss_meter.reset()
+        pbar = tqdm(self.valid_dataloader)
+
+        self.model.eval()
+        with torch.no_grad():
+            for anchor, positive in pbar:
+                anchor_embeddings = self.evaluate(anchor)
+                positive_embeddings = self.evaluate(positive)
+                loss = self.loss_fun(anchor_embeddings, positive_embeddings)
+                self.loss_meter.update(loss.item(), anchor.size(0))
+
+                pbar.set_description(f"Batch loss={loss.item():.5f}")
+
+        return self.loss_meter.avg
+
+    def run(self):
+        """ """
+
+        for epoch in range(starting_epoch, config.EPOCHS + 1):
+            print(f"Starting epoch {epoch}")
+
+            train_loss = trainer.train()
+            test_loss = trainer.test()
+
+            self.writer.add_scalar("Loss/train", train_loss, epoch)
+            self.writer.add_scalar("Loss/val", test_loss, epoch)
+
+            print(
+                f"Epoch {epoch+1:} | train loss: {train_loss:.6f}; valid loss: {test_loss:.6f} "
+            )
+
+            if test_loss < self.best_loss:
+                self.best_loss = test_loss
+                save_state(self.model, self.optimizer, epoch, test_loss)
+
+
+class AverageMeter(object):
+    """
+    Computes and stores the average and current value
+    From: https://github.com/pytorch/examples/blob/3970e068c7f18d2d54db2afee6ddd81ef3f93c24/imagenet/main.py#L363
+    """
+
+    def __init__(self, name, fmt=":f"):
+        self.name = name
+        self.fmt = fmt
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+    def __str__(self):
+        fmtstr = "{name} {val" + self.fmt + "} ({avg" + self.fmt + "})"
+        return fmtstr.format(**self.__dict__)
 
 
 if __name__ == "__main__":
-
-    starting_epoch = 1
-    best_loss = float("inf")
 
     model = create_model()
     optimizer = torch.optim.SGD(
         model.parameters(), lr=config.LEARNING_RATE, momentum=config.MOMENTUM
     )
-    loss_func = SelfSupervisedLoss(CircleLoss(m=0.25, gamma=256))
+    loss_fun = SelfSupervisedLoss(CircleLoss(m=0.25, gamma=256))
 
-    writer = SummaryWriter()
+    starting_epoch = 1
+    best_loss = float("inf")
 
     if config.LOAD_MODEL_PATH_PT.exists():
         model, optimizer, starting_epoch, best_loss = load_state(model, optimizer)
         print(f"Restarting training. Previous validation loss: {best_loss:.4f}")
 
-    for epoch in range(starting_epoch, config.EPOCHS + 1):
-        print(f"Starting epoch {epoch}")
-        train_loss = train(model, train_loader)
-        test_loss = test(model, valid_loader)
-
-        print(
-            f"Epoch train loss: {train_loss:.6f} | Epoch valid loss: {test_loss:.6f} "
-        )
-
-        writer.add_scalar("Loss/train", train_loss, epoch)
-        writer.add_scalar("Loss/val", test_loss, epoch)
-
-        if test_loss < best_loss:
-            best_loss = test_loss
-            save_state(model, optimizer, epoch, test_loss)
-
+    trainer = Trainer(model, optimizer, loss_fun, best_loss, train_loader, valid_loader)
+    trainer.run()
     print("Finished")
