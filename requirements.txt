@@ -6,3 +6,4 @@ opencv-python-headless
 tqdm
 pandas
 pytorch-metric-learning
+tensorboard
