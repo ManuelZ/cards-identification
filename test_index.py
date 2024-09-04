@@ -18,15 +18,20 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 def display_query_results(im_query, distances, indices, nrows=2, ncols=5):
     """ """
 
-    # assert nrows*ncols == config.N_RESULTS+1, f"{nrows*ncols} != {config.N_RESULTS+1}"
+    max_images = int(nrows * ncols)
+
     df = pd.read_csv(config.IMAGES_DF_PATH)
 
     fig = plt.figure(figsize=(12, 8))  # w,h
     plt.subplot(nrows, ncols, 1)
     plt.imshow(im_query)
+    plt.axis("off")
     plt.title("Query")
 
     for i, (dist, im_idx) in enumerate(zip(distances, indices)):
+
+        if i == max_images:
+            break
 
         image_path = df.loc[im_idx].image_path
         im_pred = cv2.imread(str(image_path))
