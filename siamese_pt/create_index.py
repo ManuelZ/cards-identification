@@ -28,7 +28,7 @@ test_loader = torch.utils.data.DataLoader(
 )
 
 
-def create_faiss_index(model):
+def create_faiss_index(model, data_path, index_path):
     """ """
 
     print("Creating Faiss index...")
@@ -39,7 +39,7 @@ def create_faiss_index(model):
     )  # faiss can only work with float32
     index = faiss.IndexFlatIP(config.EMBEDDING_SHAPE)
 
-    images_paths = get_image_paths(config.DATA_SUBSET, return_str=False)
+    images_paths = get_image_paths(data_path, return_str=False)
     num_images = len(images_paths)
     images_df = save_images_df(images_paths)
     index_data = np.zeros(
@@ -58,8 +58,8 @@ def create_faiss_index(model):
         index_data[i, :] = embedding
 
     index.add(index_data)
-    faiss.write_index(index, str(config.FAISS_INDEX_PATH))
-    print(f"Faiss index created at '{config.FAISS_INDEX_PATH}'")
+    faiss.write_index(index, str(index_path))
+    print(f"Faiss index created at '{index_path}'")
 
 
 if __name__ == "__main__":
