@@ -10,9 +10,7 @@ import numpy as np
 import pandas as pd
 
 # Local imports
-import siamese.config as config
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+import config as config
 
 
 def display_query_results(im_query, distances, indices, nrows=2, ncols=5):

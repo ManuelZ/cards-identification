@@ -6,11 +6,11 @@ import faiss
 from tqdm import tqdm
 
 # Local imports
-from siamese.siamese_pt.model import create_model
-from siamese.siamese_pt.dataset import SiameseDataset, common_transforms
-from siamese.augmentations import al_augmentations
-from siamese.utils import get_image_paths, save_images_df
-import siamese.config as config
+from siamese_pt.model import create_model
+from siamese_pt.dataset import SiameseDataset, common_transforms
+from augmentations import al_augmentations
+from utils import get_image_paths, save_images_df
+import config as config
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

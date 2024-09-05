@@ -10,9 +10,9 @@ from tqdm import tqdm
 import pandas as pd
 
 # Local imports
-from siamese.siamese_tf.dataset import CommonMapFunction
-import siamese.config as config
-from siamese.utils import save_images_df, get_image_paths
+from siamese_tf.dataset import CommonMapFunction
+import config as config
+from utils import save_images_df, get_image_paths
 
 
 def create_one_head_net(model_path):

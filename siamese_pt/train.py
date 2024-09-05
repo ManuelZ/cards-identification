@@ -9,10 +9,10 @@ from pytorch_metric_learning.losses import (
 from tqdm import tqdm
 
 # Local imports
-from siamese.siamese_pt.dataset import SiameseDataset, common_transforms
-from siamese.siamese_pt.model import create_model
-from siamese.augmentations import al_augmentations
-import siamese.config as config
+from siamese_pt.dataset import SiameseDataset, common_transforms
+from siamese_pt.model import create_model
+from augmentations import al_augmentations
+import config as config
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

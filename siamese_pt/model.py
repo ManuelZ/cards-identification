@@ -3,7 +3,7 @@ import torch
 import torchvision
 
 # Local imports
-import siamese.config as config
+import config as config
 
 
 def create_model():
