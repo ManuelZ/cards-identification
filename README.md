@@ -2,6 +2,9 @@
 
 Given a query card and a database of 30K cards, the goal is to determine which card in the database matches the query card.
 
+![image](https://github.com/user-attachments/assets/f7821999-0585-45d2-888e-9f032496e599)
+
+
 ## Introduction
 
 This experiment is inspired in the problem of face recognition, which tries to answer the question: "Who is this person?".
