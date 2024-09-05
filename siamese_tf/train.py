@@ -7,12 +7,12 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 # Local imports
-from siamese.siamese_tf.dataset import PairsGenerator, create_dataset, prepare_dataset
-from siamese.siamese_tf.dataset import CommonMapFunction, AugmentMapFunction
-from siamese.siamese_tf.model import get_embedding_module
-from siamese.siamese_tf.model import get_siamese_network
-from siamese.siamese_tf.model import SiameseModel
-import siamese.config as config
+from siamese_tf.dataset import PairsGenerator, create_dataset, prepare_dataset
+from siamese_tf.dataset import CommonMapFunction, AugmentMapFunction
+from siamese_tf.model import get_embedding_module
+from siamese_tf.model import get_siamese_network
+from siamese_tf.model import SiameseModel
+import config as config
 
 
 def visualize_triplets(dataset, n_batches=1):

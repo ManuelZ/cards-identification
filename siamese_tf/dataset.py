@@ -14,9 +14,9 @@ import tensorflow.keras.layers as layers
 import cv2
 
 # Local imports
-import siamese.config as config
-from siamese.augmentations import al_augmentations
-from siamese.utils import get_image_paths
+import config as config
+from augmentations import al_augmentations
+from utils import get_image_paths
 
 
 def random_vertical_flip(image, p=0.5):

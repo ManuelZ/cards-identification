@@ -1,6 +1,6 @@
 import albumentations as A
 import cv2
-import siamese.config as config
+import config as config
 
 al_augmentations = A.Compose(
     [

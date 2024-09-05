@@ -6,7 +6,7 @@ import torch
 import pandas as pd
 
 # Local imports
-import siamese.config as config
+import config as config
 
 
 def get_image_paths(folder: Path, return_str=False) -> list[Path | str]:

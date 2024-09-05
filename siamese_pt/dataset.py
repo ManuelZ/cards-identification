@@ -8,8 +8,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 # Local imports
-import siamese.config as config
-from siamese.utils import get_image_paths
+import config as config
+from utils import get_image_paths
 
 
 common_transforms = A.Compose(
