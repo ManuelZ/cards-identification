@@ -1,4 +1,4 @@
-# Card recognition
+# Card identification
 
 Given a query card and a database of 30K cards, the goal is to determine which card in the database matches the query card.
 
@@ -7,7 +7,7 @@ Given a query card and a database of 30K cards, the goal is to determine which c
 
 ## Introduction
 
-This experiment is inspired in the problem of face recognition, which tries to answer the question: "Who is this person?".
+This experiment is inspired in the problem of face identification, which tries to answer the question: "Who is this person?".
 
 ## The dataset
 
