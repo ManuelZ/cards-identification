@@ -65,6 +65,8 @@ def save_images_df(images_paths: list):
 
     df = pd.DataFrame({"image_name": names, "image_path": paths})
 
+    df.index.rename("label", inplace=True)
+
     df.to_csv(config.IMAGES_DF_PATH)
 
     return df
