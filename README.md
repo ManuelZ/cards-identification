@@ -9,6 +9,8 @@ Given a query card and a database of 30K cards, the goal is to determine which c
 
 This experiment is inspired in the problem of face identification, which tries to answer the question: "Who is this person?".
 
+[Take a look at the notebook](siamese_pt/Siamese_pytorch.ipynb).
+
 ## The dataset
 
 A total of 30467 unique cards from the game *Magic: The gathering* were downloaded from [Scryfall](https://scryfall.com/docs/api/bulk-data).
