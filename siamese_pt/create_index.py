@@ -66,7 +66,8 @@ def create_faiss_index(model, data_path, index_path):
 
 if __name__ == "__main__":
     model = create_model()
-    model.load_state_dict(torch.load("densenet121_model.pth"))
+    checkpoint = torch.load(config.LOAD_MODEL_PATH_PT, weights_only=True)
+    model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    create_faiss_index(model)
+    create_faiss_index(model, config.DATA, config.FAISS_INDEX_PATH)
