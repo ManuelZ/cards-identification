@@ -28,34 +28,36 @@ test_loader = torch.utils.data.DataLoader(
 )
 
 
+def create_embedding(model, image_path, normalize=True):
+    image = cv2.imread(str(image_path))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = common_transforms(image=image)["image"]
+    image = image.to(DEVICE, dtype=torch.float32)
+    image = image.unsqueeze(0)
+    embedding = model(image)
+    embedding = embedding.detach().cpu().numpy()
+    if normalize:
+        faiss.normalize_L2(embedding)
+    return embedding
+
+
 def create_faiss_index(model, data_path, index_path):
     """ """
 
     print("Creating Faiss index...")
 
-    num_images = len(test_loader)
-    index_data = np.zeros(
-        (num_images, config.EMBEDDING_SHAPE), dtype=np.float32
-    )  # faiss can only work with float32
-    index = faiss.IndexFlatIP(config.EMBEDDING_SHAPE)
-
     images_paths = get_image_paths(data_path, return_str=False)
     num_images = len(images_paths)
     images_df = save_images_df(images_paths)
+
     index_data = np.zeros(
         (num_images, config.EMBEDDING_SHAPE), dtype=np.float32
     )  # faiss can only work with float32
 
+    index = faiss.IndexFlatIP(config.EMBEDDING_SHAPE)
+
     for i, row in tqdm(images_df.iterrows()):
-        image = cv2.imread(str(row.image_path))
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = common_transforms(image=image)["image"]
-        image = image.to(DEVICE, dtype=torch.float32)
-        image = image.unsqueeze(0)
-        embedding = model(image)
-        embedding = embedding.detach().cpu().numpy()
-        faiss.normalize_L2(embedding)
-        index_data[i, :] = embedding
+        index_data[i, :] = create_embedding(model, row.image_path)
 
     index.add(index_data)
     faiss.write_index(index, str(index_path))
