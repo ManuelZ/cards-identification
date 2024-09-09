@@ -7,7 +7,7 @@ Given a query card and a database of 30K cards, the goal is to determine which c
 
 ## Introduction
 
-This experiment is inspired in the problem of face identification, which tries to answer the question: "Who is this person?".
+This experiment is inspired by the problem of face identification, which tries to answer the question: "Who is this person?"
 
 [Take a look at the notebook](siamese_pt/Siamese_pytorch.ipynb).
 
