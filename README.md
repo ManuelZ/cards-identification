@@ -1,4 +1,4 @@
-# Card identification
+# 30K cards identification
 
 Given a query card and a database of 30K cards, the goal is to determine which card in the database matches the query card.
 
