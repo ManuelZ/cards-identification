@@ -34,7 +34,9 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def initialize_model():
     """Creates and loads the model with pre-trained weights."""
     model = create_model()
-    checkpoint = torch.load(config.LOAD_MODEL_PATH_PT, weights_only=True)
+    checkpoint = torch.load(
+        config.LOAD_MODEL_PATH_PT, weights_only=True, map_location=DEVICE
+    )
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     return model
