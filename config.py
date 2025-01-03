@@ -80,7 +80,7 @@ MANUAL_INDEX_PATH = OUTPUT_PATH / "index.pickle"
 
 LOGS_PATH = OUTPUT_PATH / "logs"
 IMAGES_DF_PATH = OUTPUT_PATH / "images.csv"
-
+ORACLE_CARDS_CSV = "oracle-cards-20240821210300.csv"
 
 ########################################################################################################################
 #  Other parameters

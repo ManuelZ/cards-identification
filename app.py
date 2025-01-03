@@ -44,7 +44,7 @@ def load_resources():
     """Loads the index and dataframes for image and oracle information."""
     index = read_index()
     image_df = pd.read_csv(config.IMAGES_DF_PATH)
-    oracle_df = pd.read_csv(config.ROOT / "oracle-cards-20240821210300.csv")
+    oracle_df = pd.read_csv(config.ORACLE_CARDS_CSV)
     return index, image_df, oracle_df
 
 
