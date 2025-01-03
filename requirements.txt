@@ -7,3 +7,5 @@ tqdm
 pandas
 pytorch-metric-learning
 tensorboard
+gradio
+torchvision
