@@ -1,6 +1,6 @@
 # 30K cards identification
 
-*Associated article: [30K Cards Identification](https://manuelz.github.io/projects/30k-cards-identification/)*
+*Associated article: [Cards Identification project](https://manuelz.github.io/projects/30k-cards-identification/)*
 
 Given a query card and a database of 30K cards, the goal is to determine which card in the database matches the query card.
 
