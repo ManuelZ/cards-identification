@@ -1,4 +1,4 @@
-# 30K cards identification
+# Cards Identification
 
 *Associated article: [Cards Identification project](https://manuelz.github.io/projects/30k-cards-identification/)*
 
